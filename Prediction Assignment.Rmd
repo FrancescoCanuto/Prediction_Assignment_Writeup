@@ -31,7 +31,7 @@ The analysis includes an exploring data and cleaning, estimating best model for 
 
 ```{r setoptions, echo=FALSE}
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
-                      echo=TRUE, warning=FALSE, message=FALSE, cache = TRUE)
+                      echo=TRUE, warning=FALSE, message=FALSE)
 ```
 
 Uploading necessary libraries for R script
@@ -136,7 +136,7 @@ plot(confusion.Matrix.mdlkknn$table, col = confusion.Matrix.mdlkknn$byClass,
 ### 1.6 Model estimation (Random Forest)
 
 Estimating model (K-Nearest Neighbors)
-```{r }
+```{r, cache = TRUE }
 randomForest.Model <- train(classe ~., method = "rf", data = training.train, verbose = FALSE, trControl = trainControl(method="cv"), number = 3)
 randomForest.Prediction <- predict(randomForest.Model, training.test)
 ```
