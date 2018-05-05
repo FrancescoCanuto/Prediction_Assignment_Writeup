@@ -2,13 +2,7 @@
 title: 'Peer-graded Assignment: Prediction Assignment Writeup'
 author: "Francesco Canuto"
 date: "May 5, 2018"
-output:
-  html_document:
-    df_print: paged
-  html:
-    keep_md: yes
-  pdf_document: default
-  word_document: default
+output: html_document
 ---
 
 ## 0. Background
