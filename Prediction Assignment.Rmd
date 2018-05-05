@@ -106,7 +106,7 @@ rpart.plot(decisionTree.Model, main = "Decision Tree", under = T, faclen = 0)
 ```
 
 Let's see confusion matrix for model accuracy
-```{r, echo=FALSE}
+```{r,}
 confusion.Matrix.mdldt <- confusionMatrix(decisionTree.Prediction, training.test$classe)
 confusion.Matrix.mdldt
 
@@ -145,7 +145,9 @@ Let's see confusion matrix for model accuracy
 ```{r}
 confusion.Matrix.mdlrf <- confusionMatrix(randomForest.Prediction, training.test$classe)
 confusion.Matrix.mdlrf
+```
 
+```{r}
 plot(confusion.Matrix.mdlrf$table, col = confusion.Matrix.mdlrf$byClass, 
      main = paste("Model Random Forest - Accuracy =",
                   round(confusion.Matrix.mdlrf$overall['Accuracy'], 3)))
