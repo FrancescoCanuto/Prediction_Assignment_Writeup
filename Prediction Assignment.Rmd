@@ -1,0 +1,170 @@
+---
+title: 'Peer-graded Assignment: Prediction Assignment Writeup'
+author: "Francesco Canuto"
+date: "May 5, 2018"
+output:
+  html_document:
+    df_print: paged
+  html:
+    keep_md: yes
+  pdf_document: default
+  word_document: default
+---
+
+## 0. Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+The goal of your project is to predict the manner in which they did the exercise.
+
+### 0.1 The data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. 
+
+
+## 1. The Analysis
+The analysis includes an exploring data and cleaning, estimating best model for prediction and evaluating prediction erformances.
+
+### 1.1 Setting general options and libraries
+
+```{r setoptions, echo=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+                      echo=TRUE, warning=FALSE, message=FALSE, cache = TRUE)
+```
+
+Uploading necessary libraries for R script
+```{r}
+library(caret) 
+library(rpart)
+library(ggplot2)
+library(corrplot)
+library(rpart.plot)
+library(kknn)
+Sys.setlocale(locale="en_US")
+```
+
+Show system configuration for reproducibility
+```{r}
+R.version$platform
+R.version$version.string
+```
+
+### 1.2 Upload and clean data
+
+Loading "mtcars" data and review.
+```{r}
+traindata.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testdata.url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+trainData <- read.csv(url(traindata.url), na.strings = c("NA", "", "#DIV0!"))
+testData <- read.csv(url(testdata.url), na.strings = c("NA", "", "#DIV0!"))
+```
+
+Cleaning data set. In data frame are present columns with miltiple NA. All theese columns are dropped.
+```{r}
+#Eliminating NA column
+trainData <- trainData[, colSums(!is.na(trainData))/dim(trainData)[1] > 0.5]
+testData  <- testData [, colSums(!is.na(testData ))/dim(testData)[1] > 0.5]
+
+#eliminating not usefull variables
+trainData <- trainData[, -c(1:7)]
+trainData$classe <- as.factor(trainData$classe) #classe variable to factor
+testData <- testData[, -c(1:7)]
+```
+
+### 1.3 Pre-processing
+
+Checking for zero-variance predictor
+```{r }
+nzv <- nearZeroVar(trainData, saveMetrics= TRUE)
+nzv <- nearZeroVar(trainData)
+```
+
+NOTE: In this case nzv vector is empty.
+
+Splitting the data
+```{r }
+inTrain <- createDataPartition(y=trainData$classe, p=0.7, list=F)
+training.train <- trainData[inTrain, ]
+training.test <- trainData[-inTrain, ]
+dim(training.train)
+dim(training.test)
+```
+
+### 1.4 Model estimation (Decision Tree)
+
+Estimating model (Decision Tree)
+```{r }
+decisionTree.Model <- rpart(classe ~ ., data = training.train, method = "class")
+decisionTree.Prediction <- predict(decisionTree.Model, training.test, type = "class")
+```
+
+In the chart is visible the dendogram of the model
+```{r}
+rpart.plot(decisionTree.Model, main = "Decision Tree", under = T, faclen = 0)
+```
+
+Let's see confusion matrix for model accuracy
+```{r, echo=FALSE}
+confusion.Matrix.mdldt <- confusionMatrix(decisionTree.Prediction, training.test$classe)
+confusion.Matrix.mdldt
+
+plot(confusion.Matrix.mdldt$table, col = confusion.Matrix.mdldt$byClass, 
+     main = paste("Decision Tree - Accuracy =",
+                  round(confusion.Matrix.mdldt$overall['Accuracy'], 4)))
+```
+
+### 1.5 Model estimation (K-Nearest Neighbors)
+
+Estimating model (K-Nearest Neighbors)
+```{r}
+kknn.Model <- train.kknn(classe ~ ., data = training.train, kmax = 9)
+kknn.Prediction <- predict(kknn.Model, training.test)
+```
+
+Let's see confusion matrix for model accuracy
+```{r}
+confusion.Matrix.mdlkknn <- confusionMatrix(kknn.Prediction, training.test$classe)
+confusion.Matrix.mdlkknn
+
+plot(confusion.Matrix.mdlkknn$table, col = confusion.Matrix.mdlkknn$byClass, 
+     main = paste("Model K-Nearest Neighbors - Accuracy =",
+                  round(confusion.Matrix.mdlkknn$overall['Accuracy'], 4)))
+```
+
+### 1.6 Model estimation (Random Forest)
+
+Estimating model (K-Nearest Neighbors)
+```{r }
+randomForest.Model <- train(classe ~., method = "rf", data = training.train, verbose = FALSE, trControl = trainControl(method="cv"), number = 3)
+randomForest.Prediction <- predict(randomForest.Model, training.test)
+```
+
+Let's see confusion matrix for model accuracy
+```{r}
+confusion.Matrix.mdlrf <- confusionMatrix(randomForest.Prediction, training.test$classe)
+confusion.Matrix.mdlrf
+
+plot(confusion.Matrix.mdlrf$table, col = confusion.Matrix.mdlrf$byClass, 
+     main = paste("Model Random Forest - Accuracy =",
+                  round(confusion.Matrix.mdlrf$overall['Accuracy'], 3)))
+
+```
+
+
+### 2.0 Conclusion
+The model with highest level of accurancy is the random forest one, even if kknn as good level of acccurancy. We will use random forest for predict "classe" variable of testing set.
+
+```{r}
+predict.finalkn <- predict(kknn.Model, newdata=testData)
+predict.finalkn
+predict.finalrf <- predict(randomForest.Model, newdata=testData)
+predict.finalrf
+```
